@@ -1,6 +1,9 @@
 from fastapi import FastAPI
+from routers.feedback import feedback
 
 app = FastAPI()
+
+app.include_router(feedback)
 
 
 @app.get("/")
