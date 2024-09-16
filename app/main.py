@@ -1,13 +1,10 @@
 from fastapi import FastAPI
+from app.routers.project import router as project
 
-app = FastAPI()
+app = FastAPI(title="AI Portal Backend")
 
+app.include_router(project, prefix="/api/portfolio", tags=["projects"])
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
-
-
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
+    return {"message": "Welcome to AI Portal Backend"}
