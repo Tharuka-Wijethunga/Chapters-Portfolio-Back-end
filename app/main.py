@@ -7,6 +7,7 @@ from app.routers import (
     handle_utils,
 )
 from app.routers import handle_utils
+from routers.feedback import feedback
 
 app = FastAPI()
 
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 # Routers
+app.include_router(feedback, prefix="/api/portfolio")
 app.include_router(handle_utils.router, prefix="/utils", tags=["Utils"])
 
 # Events
