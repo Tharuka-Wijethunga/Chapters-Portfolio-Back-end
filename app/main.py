@@ -3,13 +3,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.dependencies.db_authentication import connect_to_mongo, close_mongo_connection
-from app.routers import (
-    handle_utils,
-)
 from app.routers import handle_utils
 from routers.feedback import feedback
+from app.routers.project import router as project
 
-app = FastAPI()
+app = FastAPI(title="AI Portal Backend")
 
 origins = [
     "http://localhost",
@@ -31,3 +29,4 @@ app.include_router(handle_utils.router, prefix="/utils", tags=["Utils"])
 # Events
 app.add_event_handler("startup", connect_to_mongo)
 app.add_event_handler("shutdown", close_mongo_connection)
+app.include_router(project, prefix="/api/portfolio", tags=["projects"])
