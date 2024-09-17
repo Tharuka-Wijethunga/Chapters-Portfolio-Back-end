@@ -3,7 +3,7 @@ from routers.feedback import feedback
 
 app = FastAPI()
 
-app.include_router(feedback)
+app.include_router(feedback, prefix="/api/portfolio")
 
 
 @app.get("/")
