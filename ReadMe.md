@@ -1,4 +1,4 @@
-Chapters - Portfolio Backend
+# Chapters - Portfolio Backend
 
 This project is a FastAPI-based backend for an Chapters - AI Portal Portfolio backend. It provides APIs for managing administrators, users, projects, project feedback and etc.
 
