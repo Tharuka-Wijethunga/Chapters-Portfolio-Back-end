@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Body, HTTPException, Depends
 from passlib.context import CryptContext
+
 from auth.jwt_handler import sign_jwt
-from database.database import add_user, get_user
+from auth.jwt_bearer import JWTBearer
 from models.user import User
 from schemas.user import UserSignUp, UserSignIn
-from auth.jwt_bearer import JWTBearer
+from database.user import *
 
 
 router = APIRouter()

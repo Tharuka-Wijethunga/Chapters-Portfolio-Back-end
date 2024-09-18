@@ -2,10 +2,12 @@ from typing import Optional
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic_settings import BaseSettings
+
 from models.admin import Admin
 from models.user import User
-from models.student import Student
+from models.feedback import Feedback
 from models.project import Project
+
 
 class Settings(BaseSettings):
     # database configurations
@@ -24,5 +26,5 @@ async def initiate_database():
     client = AsyncIOMotorClient(Settings().MONGODB_URI)
     await init_beanie(
         database=client[Settings().MONGODB_DB],
-        document_models=[Admin, User, Student, Project]
+        document_models=[Admin, User, Feedback, Project]
     )
