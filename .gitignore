@@ -132,3 +132,4 @@ dmypy.json
 .vercel
 .env
 /.github
+.vscode
