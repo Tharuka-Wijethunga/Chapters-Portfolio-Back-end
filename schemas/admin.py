@@ -6,7 +6,10 @@ class AdminSignIn(BaseModel):
 
     class Config:
         json_schema_extra = {
-            "example": {"username": "admin1", "password": "securepass123"}
+            "example": {
+                "username": "admin1", 
+                "password": "securepass123"
+            }
         }
 
 class AdminData(BaseModel):

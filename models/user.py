@@ -9,8 +9,8 @@ class User(Document):
     class Config:
         json_schema_extra = {
             "example": {
-                "fullname": "John Doe",
-                "email": "john@example.com",
+                "fullname": "Tharindu S",
+                "email": "tharindus@example.com",
                 "password": "securepass123",
             }
         }
@@ -24,5 +24,8 @@ class UserSignIn(BaseModel):
 
     class Config:
         json_schema_extra = {
-            "example": {"email": "john@example.com", "password": "securepass123"}
+            "example": {
+                "email": "tharindus@example.com", 
+                "password": "securepass123"
+            }
         }

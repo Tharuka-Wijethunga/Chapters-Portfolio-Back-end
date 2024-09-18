@@ -2,7 +2,6 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from config.config import initiate_database
 from routes.admin import router as AdminRouter
-# from routes.student import router as StudentRouter
 from routes.user import router as UserRouter
 from routes.project import router as ProjectRouter
 from routes.utils import router as UtilsRouter
@@ -29,8 +28,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(AdminRouter, tags=["Administrator"], prefix="/admin")
+app.include_router(AdminRouter, tags=["Admins"], prefix="/admin")
 app.include_router(UserRouter, tags=["Users"], prefix="/user")
-# app.include_router(StudentRouter, tags=["Students"], prefix="/student", dependencies=[Depends(JWTBearer(allowed_roles=["user", "admin"]))])
 app.include_router(ProjectRouter, tags=["Projects"], prefix="/projects")
 app.include_router(UtilsRouter, tags=["Utilities"], prefix="/utils")
+# app.include_router(FeedbackRouter, tags=["Feedbacks"], prefix="/feedback", dependencies=[Depends(JWTBearer(allowed_roles=["user", "admin"]))])

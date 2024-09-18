@@ -1,10 +1,7 @@
-# app/routers/utils.py
-
 from fastapi import APIRouter, Body
+
 from schemas.thumbnail import thumbnail
-
 from services.thumbnail_service import generate_thumbnail
-
 
 router = APIRouter()
 

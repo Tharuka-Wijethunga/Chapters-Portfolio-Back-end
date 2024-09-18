@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Body, HTTPException, Depends
 from passlib.context import CryptContext
+
 from auth.jwt_handler import sign_jwt
-from database.database import get_admin
-from schemas.admin import AdminSignIn
 from auth.jwt_bearer import JWTBearer
+from database.admin import *
+from schemas.admin import AdminSignIn
 
 
 router = APIRouter()
