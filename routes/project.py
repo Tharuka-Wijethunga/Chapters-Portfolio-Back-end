@@ -79,8 +79,27 @@ async def set_project_featured_status(projectId: str, featured: bool = Body(...)
 
 @router.post("/{projectId}/feedback", response_model=FeedbackResponse, dependencies=[Depends(user_jwt_bearer)])
 async def add_feedback(projectId: str, feedback: str):
+   # Validate projectId
+    if not ObjectId.is_valid(projectId):
+        raise HTTPException(status_code=400, detail="Invalid projectId")
+    
+    # Check if project exists
+    project = await Project.get(ObjectId(projectId))
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Create new feedback
     new_feedback = Feedback(project_id=projectId, content=feedback)
-    await new_feedback.insert()
+
+    try:
+        await new_feedback.insert()
+        if not new_feedback.id:
+            raise HTTPException(status_code=404, detail="Failed to save feedback")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+    
+    # Return the newly created feedback as the response
     return FeedbackResponse(**new_feedback.dict())
 
 @router.delete("/feedback/{feedbackId}/delete", status_code=204, dependencies=[Depends(user_jwt_bearer)])
