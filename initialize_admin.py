@@ -5,14 +5,14 @@ from config.config import Settings
 from models.admin import Admin
 from passlib.context import CryptContext
 
-hash_helper = CryptContext(schemes=["bcrypt"])
+hash_helper = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 async def init_db():
     client = AsyncIOMotorClient(Settings().MONGODB_URI)
     await init_beanie(database=client[Settings().MONGODB_DB], document_models=[Admin])
 
 async def create_admin(username: str, password: str):
-    hashed_password = hash_helper.encrypt(password)
+    hashed_password = hash_helper.hash(password)
     admin = Admin(username=username, password=hashed_password)
     await admin.insert()
     print(f"Admin {username} created successfully")
