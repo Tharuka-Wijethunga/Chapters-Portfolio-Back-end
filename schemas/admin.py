@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class AdminSignIn(BaseModel):
     username: str
     password: str
@@ -7,10 +8,11 @@ class AdminSignIn(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "username": "admin1", 
+                "username": "admin1",
                 "password": "securepass123"
             }
         }
+
 
 class AdminData(BaseModel):
     username: str

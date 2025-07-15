@@ -1,27 +1,43 @@
-from pydantic import BaseModel
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
 from beanie import PydanticObjectId
+from pydantic import BaseModel
+
 
 class ProjectSchema(BaseModel):
     id: PydanticObjectId
-    name: str
+    topic: str
     description: str
+    batch: str
+    contributors: List[str]
+    search_tags: List[str]
+    date: datetime
     image: str
+    width: int
+    height: int
     visibility: bool
     featured: bool
     created_at: datetime
-    updated_at: datetime
-    
+
+
     class Config:
-        from_attributes=True
+        from_attributes = True
+
 
 class ProjectCreateSchema(BaseModel):
-    name: str
+    topic: str
     description: str
+    batch: str
+    contributors: List[str]
+    search_tags: List[str]
+    date: datetime
     image: str
+    width: int
+    height: int
     visibility: bool = True
-    featured: bool = False
+    featured: bool = True
+
 
 class ProjectUpdateSchema(BaseModel):
     name: Optional[str] = None
@@ -30,8 +46,6 @@ class ProjectUpdateSchema(BaseModel):
     visibility: Optional[bool] = None
     featured: Optional[bool] = None
 
+
 class ProjectListSchema(BaseModel):
     projects: List[ProjectSchema]
-    total: int
-    page: int
-    page_size: int

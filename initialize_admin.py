@@ -7,9 +7,11 @@ from passlib.context import CryptContext
 
 hash_helper = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 async def init_db():
     client = AsyncIOMotorClient(Settings().MONGODB_URI)
     await init_beanie(database=client[Settings().MONGODB_DB], document_models=[Admin])
+
 
 async def create_admin(username: str, password: str):
     hashed_password = hash_helper.hash(password)
@@ -17,11 +19,13 @@ async def create_admin(username: str, password: str):
     await admin.insert()
     print(f"Admin {username} created successfully")
 
+
 async def main():
     await init_db()
-    
+
     await create_admin("admin1", "securepass123")
     await create_admin("admin2", "adminNew")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

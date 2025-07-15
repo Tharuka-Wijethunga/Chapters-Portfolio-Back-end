@@ -1,20 +1,43 @@
+from datetime import datetime
+from typing import List, Optional
+
 from beanie import Document
 from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import datetime
 
 
 class Project(Document):
-    name: str
+    topic: str
     description: str
+    batch: str
+    contributors: List[str]
+    search_tags: List[str]
+    date: datetime
     image: str
+    width: int
+    height: int
     visibility: bool = True
-    featured: bool = False
+    featured: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    def __repr__(self) -> str:
+        return f"<Project {self.name}>"
 
     class Settings:
         name = "projects"
+        use_state_management = True
+
+    async def save_with_timestamp(self) -> None:
+        self.updated_at = datetime.utcnow()
+        await self.save()
+
+    @classmethod
+    async def get_visible_projects(cls) -> List["Project"]:
+        return await cls.find({"visibility": True}).to_list()
+
+    @classmethod
+    async def get_featured_projects(cls) -> List["Project"]:
+        return await cls.find({"featured": True, "visibility": True}).to_list()
+
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -22,6 +45,7 @@ class ProjectUpdate(BaseModel):
     image: Optional[str] = None
     visibility: Optional[bool] = None
     featured: Optional[bool] = None
+
 
 class ProjectSearch(BaseModel):
     query: str

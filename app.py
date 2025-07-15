@@ -1,35 +1,49 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from config.config import initiate_database
+from core.database import init_db, close_db_connection
+from core.config import settings
 from routes.admin import router as AdminRouter
 from routes.user import router as UserRouter
 from routes.project import router as ProjectRouter
 from routes.utils import router as UtilsRouter
-from auth.jwt_bearer import JWTBearer
 
-app = FastAPI()
-
-
-app.add_event_handler("startup", initiate_database)
-
-@app.get("/", tags=["Root"])
-async def read_root():
-    return {"message": "Welcome to 'Chapters' Portfolio backend API !"}
-
-origins = [
-    "http://localhost",
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    description="Backend API for Chapters Portfolio",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
-app.include_router(AdminRouter, tags=["Admins"], prefix="/admin")
-app.include_router(UserRouter, tags=["Users"], prefix="/user")
-app.include_router(ProjectRouter, tags=["Projects"], prefix="/projects")
-app.include_router(UtilsRouter, tags=["Utilities"], prefix="/utils")
-# app.include_router(FeedbackRouter, tags=["Feedbacks"], prefix="/feedback", dependencies=[Depends(JWTBearer(allowed_roles=["user", "admin"]))])
+# Set up CORS
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+# Database event handlers
+@app.on_event("startup")
+async def startup_db_client():
+    await init_db()
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    await close_db_connection()
+
+# Include routers
+app.include_router(AdminRouter, prefix="/admin", tags=["Admin"])
+app.include_router(UserRouter, prefix="/user", tags=["User"])
+app.include_router(ProjectRouter, prefix="/projects", tags=["Projects"])
+app.include_router(UtilsRouter, prefix="/utils", tags=["Utils"])
+
+@app.get("/")
+async def root():
+    return {
+        "message": f"Welcome to {settings.PROJECT_NAME}",
+        "docs": "/docs",
+        "version": "1.0.0"
+    }

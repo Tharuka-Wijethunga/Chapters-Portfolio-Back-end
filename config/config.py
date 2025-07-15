@@ -22,6 +22,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         from_attributes = True
 
+
 async def initiate_database():
     client = AsyncIOMotorClient(Settings().MONGODB_URI)
     await init_beanie(

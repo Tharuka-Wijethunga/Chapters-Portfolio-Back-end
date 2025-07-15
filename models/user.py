@@ -1,31 +1,22 @@
+from datetime import datetime
 from beanie import Document
-from pydantic import BaseModel, EmailStr
+from pydantic import EmailStr, Field
+
 
 class User(Document):
     fullname: str
     email: EmailStr
     password: str
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "fullname": "Tharindu S",
-                "email": "tharindus@example.com",
-                "password": "securepass123",
-            }
-        }
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Settings:
         name = "user"
-
-class UserSignIn(BaseModel):
-    email: EmailStr
-    password: str
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "email": "tharindus@example.com", 
-                "password": "securepass123"
-            }
+        
+    def to_user_data(self):
+        return {
+            "fullname": self.fullname,
+            "email": self.email,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
         }
