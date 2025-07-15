@@ -1,10 +1,12 @@
-from pydantic import BaseModel, EmailStr
+from datetime import datetime
 from typing import Optional
+from pydantic import BaseModel, EmailStr, Field
+
 
 class UserSignUp(BaseModel):
     fullname: str
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8)
 
     class Config:
         json_schema_extra = {
@@ -15,6 +17,7 @@ class UserSignUp(BaseModel):
             }
         }
 
+
 class UserSignIn(BaseModel):
     email: EmailStr
     password: str
@@ -22,10 +25,11 @@ class UserSignIn(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "email": "tharindus@example.com", 
+                "email": "tharindus@example.com",
                 "password": "securepass123"
             }
         }
+
 
 class UserData(BaseModel):
     fullname: str
@@ -36,5 +40,19 @@ class UserData(BaseModel):
             "example": {
                 "fullname": "Tharindu S",
                 "email": "tharindus@example.com",
+            }
+        }
+        from_attributes = True
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "token_type": "bearer"
             }
         }
