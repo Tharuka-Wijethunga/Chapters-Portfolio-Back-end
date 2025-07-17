@@ -6,7 +6,6 @@ from auth.jwt_bearer import JWTBearer
 from database.admin import *
 from schemas.admin import AdminSignIn
 
-
 router = APIRouter()
 hash_helper = CryptContext(schemes=["bcrypt"])
 
@@ -28,6 +27,7 @@ async def admin_login(admin_credentials: AdminSignIn = Body(...)):
     raise HTTPException(
         status_code=403, detail="Incorrect username or password"
     )
+
 
 @router.get("/dashboard", dependencies=[Depends(admin_jwt_bearer)])
 async def admin_dashboard():
