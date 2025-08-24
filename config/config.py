@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     # database configurations
     MONGODB_URI: str = None
     MONGODB_DB: str
+
+    KEYCLOAK_URL: str = None
+    REALM: str = None
+    CLIENT_ID: str = None
+    CLIENT_SECRET: str = None
     # JWT
     secret_key: str = "secret"
     algorithm: str = "HS256"
@@ -28,3 +33,5 @@ async def initiate_database():
         database=client[Settings().MONGODB_DB],
         document_models=[Admin, User, Feedback, Project]
     )
+
+settings = Settings()

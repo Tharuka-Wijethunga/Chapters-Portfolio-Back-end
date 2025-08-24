@@ -7,12 +7,23 @@ from models.user import User
 from schemas.user import UserSignUp, UserSignIn
 from database.user import *
 
+from services.keycloak import get_all_users, get_user_by_id
+from schemas.keycloak import KeycloakUser as keycloak_user
+from typing import List
+
 
 router = APIRouter()
 hash_helper = CryptContext(schemes=["bcrypt"])
 
 user_jwt_bearer = JWTBearer(allowed_roles=["user", "admin"])
 
+@router.get("/keycloak-users", response_model=List[keycloak_user], tags=["Keycloak User"])
+async def keycloak_users():
+    return get_all_users()
+
+@router.get("/keycloak-user/{user_id}", response_model=keycloak_user, tags=["Keycloak User"])
+async def keycloak_user(user_id: str):
+    return get_user_by_id(user_id)
 
 @router.post("/signup")
 async def user_signup(user: UserSignUp = Body(...)):
