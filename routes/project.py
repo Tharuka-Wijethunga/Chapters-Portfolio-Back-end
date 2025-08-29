@@ -3,6 +3,7 @@ from typing import List, Optional
 from bson import ObjectId
 
 from auth.jwt_bearer import JWTBearer
+from auth.security import get_current_user_id
 from models.project import Project, ProjectUpdate
 from models.feedback import Feedback
 from schemas.project import *
@@ -67,7 +68,7 @@ async def search_projects_by_query(query: str):
     projects = await search_projects(query)
     return [ProjectSchema.from_orm(project) for project in projects]
 
-@router.put("/{projectId}/featured", response_model=ProjectSchema, dependencies=[Depends(admin_jwt_bearer)])
+@router.put("/{projectId}/featured", response_model=ProjectSchema, dependencies=[Depends(get_current_user_id)])
 async def set_project_featured_status(projectId: str, featured: bool = Body(...)):
     updated_project = await set_featured_status(projectId, featured)
     if updated_project:
@@ -114,7 +115,7 @@ async def delete_feedback(feedbackId: str):
     await feedback.delete()
     return Response(status_code=204)
 
-@router.put("/feedback/{feedbackId}/rank", response_model=FeedbackResponse, dependencies=[Depends(admin_jwt_bearer)])
+@router.put("/feedback/{feedbackId}/rank", response_model=FeedbackResponse, dependencies=[Depends(get_current_user_id)])
 async def rank_feedback(feedbackId: str, rank_update: FeedbackUpdate):
     if not ObjectId.is_valid(feedbackId):
         raise HTTPException(status_code=400, detail="Invalid feedbackId")

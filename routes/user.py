@@ -3,6 +3,7 @@ from passlib.context import CryptContext
 
 from auth.jwt_handler import sign_jwt
 from auth.jwt_bearer import JWTBearer
+from auth.security import get_current_user_id
 from models.user import User
 from schemas.user import UserSignUp, UserSignIn
 from database.user import *

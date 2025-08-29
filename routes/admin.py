@@ -3,6 +3,7 @@ from passlib.context import CryptContext
 
 from auth.jwt_handler import sign_jwt
 from auth.jwt_bearer import JWTBearer
+from auth.security import get_current_user_id
 from database.admin import *
 from schemas.admin import AdminSignIn
 
@@ -29,6 +30,6 @@ async def admin_login(admin_credentials: AdminSignIn = Body(...)):
         status_code=403, detail="Incorrect username or password"
     )
 
-@router.get("/dashboard", dependencies=[Depends(admin_jwt_bearer)])
+@router.get("/dashboard", dependencies=[Depends(get_current_user_id)])
 async def admin_dashboard():
     return {"message": "Welcome to the admin dashboard!"}
