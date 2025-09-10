@@ -3,7 +3,6 @@ from typing import List, Optional
 from bson import ObjectId
 
 from auth.jwt_bearer import JWTBearer
-from auth.security import get_current_user_id
 from models.project import Project, ProjectUpdate
 from models.feedback import Feedback
 from schemas.project import *
@@ -13,11 +12,7 @@ from database.feedback import *
 
 router = APIRouter()
 
-admin_jwt_bearer = JWTBearer(allowed_roles=["admin"])
-user_jwt_bearer = JWTBearer(allowed_roles=["user", "admin"])
-
-
-# Project routes
+# --- Public Project Routes ---
 
 @router.get("/all", response_model=ProjectListSchema)
 async def list_projects(
@@ -39,71 +34,61 @@ async def list_projects(
 
 @router.get("/{projectId}", response_model=ProjectSchema)
 async def get_project_by_id(projectId: str):
-    project = await get_project(projectId)
+    project = await get_project(ObjectId(projectId))
     if project:
         return ProjectSchema.from_orm(project)
     raise HTTPException(status_code=404, detail="Project not found")
-
-@router.post("/create", response_model=ProjectSchema, dependencies=[Depends(user_jwt_bearer)])
-async def create_new_project(project: ProjectCreateSchema):
-    new_project = Project(**project.dict())
-    created_project = await create_project(new_project)
-    return ProjectSchema.from_orm(created_project)
-
-@router.put("/{projectId}", response_model=ProjectSchema, dependencies=[Depends(user_jwt_bearer)])
-async def update_existing_project(projectId: str, project_update: ProjectUpdateSchema):
-    updated_project = await update_project(projectId, ProjectUpdate(**project_update.dict(exclude_unset=True)))
-    if updated_project:
-        return ProjectSchema.from_orm(updated_project)
-    raise HTTPException(status_code=404, detail="Project not found")
-
-@router.delete("/{projectId}", status_code=204, dependencies=[Depends(user_jwt_bearer)])
-async def delete_existing_project(projectId: str):
-    deleted = await delete_project(projectId)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Project not found")
 
 @router.get("/search", response_model=List[ProjectSchema])
 async def search_projects_by_query(query: str):
     projects = await search_projects(query)
     return [ProjectSchema.from_orm(project) for project in projects]
 
-@router.put("/{projectId}/featured", response_model=ProjectSchema, dependencies=[Depends(get_current_user_id)])
-async def set_project_featured_status(projectId: str, featured: bool = Body(...)):
+# --- Protected Project Routes ---
+
+@router.post("/create", response_model=ProjectSchema, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
+async def create_new_project(project: ProjectCreateSchema):
+    new_project = Project(**project.dict())
+    created_project = await create_project(new_project)
+    return ProjectSchema.from_orm(created_project)
+
+@router.put("/{projectId}", response_model=ProjectSchema, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
+async def update_existing_project(projectId: str, project_update: ProjectUpdateSchema):
+    updated_project = await update_project(ObjectId(projectId), ProjectUpdate(**project_update.dict(exclude_unset=True)))
+    if updated_project:
+        return ProjectSchema.from_orm(updated_project)
+    raise HTTPException(status_code=404, detail="Project not found")
+
+@router.delete("/{projectId}", status_code=204, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
+async def delete_existing_project(projectId: str):
+    deleted = await delete_project(ObjectId(projectId))
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+@router.put("/{projectId}/featured", response_model=ProjectSchema, dependencies=[Depends(JWTBearer(allowed_roles=["manage-account"]))])
+async def set_project_featured_status(projectId: str, featured: bool = Body(..., embed=True)):
     updated_project = await set_featured_status(projectId, featured)
     if updated_project:
         return ProjectSchema.from_orm(updated_project)
     raise HTTPException(status_code=404, detail="Project not found")
 
+# --- Protected Feedback Routes ---
 
-# Feedback routes
-
-@router.post("/{projectId}/feedback", response_model=FeedbackResponse, dependencies=[Depends(user_jwt_bearer)])
-async def add_feedback(projectId: str, feedback: str):
-   # Validate projectId
+@router.post("/{projectId}/feedback", response_model=FeedbackResponse, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
+async def add_feedback(projectId: str, feedback_content: str = Body(..., embed=True, alias="content")):
     if not ObjectId.is_valid(projectId):
         raise HTTPException(status_code=400, detail="Invalid projectId")
     
-    # Check if project exists
     project = await Project.get(ObjectId(projectId))
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Create new feedback
-    new_feedback = Feedback(project_id=projectId, content=feedback)
-
-    try:
-        await new_feedback.insert()
-        if not new_feedback.id:
-            raise HTTPException(status_code=404, detail="Failed to save feedback")
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+    new_feedback = Feedback(project_id=projectId, content=feedback_content)
+    await new_feedback.insert()
     
-    # Return the newly created feedback as the response
-    return FeedbackResponse(**new_feedback.dict())
+    return FeedbackResponse.model_validate(new_feedback)
 
-@router.delete("/feedback/{feedbackId}/delete", status_code=204, dependencies=[Depends(user_jwt_bearer)])
+@router.delete("/feedback/{feedbackId}/delete", status_code=204, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
 async def delete_feedback(feedbackId: str):
     if not ObjectId.is_valid(feedbackId):
         raise HTTPException(status_code=400, detail="Invalid feedbackId")
@@ -115,7 +100,7 @@ async def delete_feedback(feedbackId: str):
     await feedback.delete()
     return Response(status_code=204)
 
-@router.put("/feedback/{feedbackId}/rank", response_model=FeedbackResponse, dependencies=[Depends(get_current_user_id)])
+@router.put("/feedback/{feedbackId}/rank", response_model=FeedbackResponse, dependencies=[Depends(JWTBearer(allowed_roles=["manage-account"]))])
 async def rank_feedback(feedbackId: str, rank_update: FeedbackUpdate):
     if not ObjectId.is_valid(feedbackId):
         raise HTTPException(status_code=400, detail="Invalid feedbackId")
@@ -127,4 +112,4 @@ async def rank_feedback(feedbackId: str, rank_update: FeedbackUpdate):
     feedback.rank = rank_update.rank
     await feedback.save()
 
-    return FeedbackResponse(**feedback.dict())
+    return FeedbackResponse.model_validate(feedback)
