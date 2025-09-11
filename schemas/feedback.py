@@ -1,5 +1,6 @@
+from typing import Optional
 from pydantic import BaseModel
-from typing import Optional, Any
+
 
 # class Response(BaseModel):
 #     status_code: int
@@ -19,6 +20,7 @@ from typing import Optional, Any
 
 class FeedbackUpdate(BaseModel):
     rank: int
+
 
 class FeedbackResponse(BaseModel):
     id: str

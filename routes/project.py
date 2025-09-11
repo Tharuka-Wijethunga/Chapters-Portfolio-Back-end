@@ -1,129 +1,109 @@
-from fastapi import APIRouter, HTTPException, Query, Body, Depends, Response
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Query, Body, Depends, Response, status
+from typing import List
 from bson import ObjectId
 
 from auth.jwt_bearer import JWTBearer
-from models.project import Project, ProjectUpdate
 from models.feedback import Feedback
-from schemas.project import *
-from schemas.feedback import FeedbackUpdate, FeedbackResponse
-from database.project import *
-from database.feedback import *
+from models.project import Project, ProjectUpdate
+from schemas.feedback import FeedbackResponse, FeedbackUpdate
+from schemas.project import ProjectSchema, ProjectUpdateSchema, ProjectCreateSchema, ProjectListSchema
+from database import project as project_db
 
 router = APIRouter()
 
-admin_jwt_bearer = JWTBearer(allowed_roles=["admin"])
-user_jwt_bearer = JWTBearer(allowed_roles=["user", "admin"])
-
-
-# Project routes
+# --- Public Routes ---
 
 @router.get("/all", response_model=ProjectListSchema)
-async def list_projects(
-    name: Optional[str] = Query(None),
-    visibility: Optional[bool] = Query(None),
-    sort_field: Optional[str] = Query(None),
-    sort_direction: Optional[str] = Query("ascending"),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100)
-):
-    projects = await get_projects(name, visibility, sort_field, sort_direction, page, page_size)
-    total = await Project.count()
-    return ProjectListSchema(
-        projects=[ProjectSchema.from_orm(project) for project in projects],
-        total=total,
-        page=page,
-        page_size=page_size
-    )
+async def list_projects(featured: bool = False):
+    try:
+        if featured:
+            projects = await Project.get_featured_projects()
+        else:
+            projects = await Project.get_visible_projects()
+        return ProjectListSchema(projects=projects)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{projectId}", response_model=ProjectSchema)
 async def get_project_by_id(projectId: str):
-    project = await get_project(projectId)
-    if project:
-        return ProjectSchema.from_orm(project)
-    raise HTTPException(status_code=404, detail="Project not found")
+    if not ObjectId.is_valid(projectId):
+        raise HTTPException(status_code=400, detail="Invalid project ID")
+    project = await project_db.get_project(ObjectId(projectId))
+    if not project or not project.visibility:
+        raise HTTPException(status_code=404, detail="Project not found or not visible")
+    return project
 
-@router.post("/create", response_model=ProjectSchema, dependencies=[Depends(user_jwt_bearer)])
+@router.get("/search/", response_model=List[ProjectSchema])
+async def search_projects_by_query(query: str):
+    return await project_db.search_projects(query)
+
+# --- Protected Routes ---
+
+@router.post("/create", response_model=ProjectSchema, status_code=201, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
 async def create_new_project(project: ProjectCreateSchema):
     new_project = Project(**project.dict())
-    created_project = await create_project(new_project)
-    return ProjectSchema.from_orm(created_project)
+    return await project_db.create_project(new_project)
 
-@router.put("/{projectId}", response_model=ProjectSchema, dependencies=[Depends(user_jwt_bearer)])
+@router.put("/{projectId}", response_model=ProjectSchema, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
 async def update_existing_project(projectId: str, project_update: ProjectUpdateSchema):
-    updated_project = await update_project(projectId, ProjectUpdate(**project_update.dict(exclude_unset=True)))
-    if updated_project:
-        return ProjectSchema.from_orm(updated_project)
-    raise HTTPException(status_code=404, detail="Project not found")
+    if not ObjectId.is_valid(projectId):
+        raise HTTPException(status_code=400, detail="Invalid project ID")
+    
+    # Using ProjectUpdate model as it aligns with the database function
+    update_data = ProjectUpdate(**project_update.dict(exclude_unset=True))
+    updated_project = await project_db.update_project(ObjectId(projectId), update_data)
+    
+    if not updated_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return updated_project
 
-@router.delete("/{projectId}", status_code=204, dependencies=[Depends(user_jwt_bearer)])
+@router.delete("/{projectId}", status_code=204, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
 async def delete_existing_project(projectId: str):
-    deleted = await delete_project(projectId)
+    if not ObjectId.is_valid(projectId):
+        raise HTTPException(status_code=400, detail="Invalid project ID")
+    deleted = await project_db.delete_project(ObjectId(projectId))
     if not deleted:
         raise HTTPException(status_code=404, detail="Project not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-@router.get("/search", response_model=List[ProjectSchema])
-async def search_projects_by_query(query: str):
-    projects = await search_projects(query)
-    return [ProjectSchema.from_orm(project) for project in projects]
-
-@router.put("/{projectId}/featured", response_model=ProjectSchema, dependencies=[Depends(admin_jwt_bearer)])
-async def set_project_featured_status(projectId: str, featured: bool = Body(...)):
-    updated_project = await set_featured_status(projectId, featured)
-    if updated_project:
-        return ProjectSchema.from_orm(updated_project)
-    raise HTTPException(status_code=404, detail="Project not found")
-
-
-# Feedback routes
-
-@router.post("/{projectId}/feedback", response_model=FeedbackResponse, dependencies=[Depends(user_jwt_bearer)])
-async def add_feedback(projectId: str, feedback: str):
-   # Validate projectId
-    if not ObjectId.is_valid(projectId):
-        raise HTTPException(status_code=400, detail="Invalid projectId")
-    
-    # Check if project exists
-    project = await Project.get(ObjectId(projectId))
-    if project is None:
+@router.put("/{projectId}/featured", response_model=ProjectSchema, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
+async def set_project_featured_status(projectId: str, featured: bool = Body(..., embed=True)):
+    updated_project = await project_db.set_featured_status(projectId, featured)
+    if not updated_project:
         raise HTTPException(status_code=404, detail="Project not found")
+    return updated_project
 
-    # Create new feedback
-    new_feedback = Feedback(project_id=projectId, content=feedback)
+# --- Feedback Routes (Protected) ---
 
-    try:
-        await new_feedback.insert()
-        if not new_feedback.id:
-            raise HTTPException(status_code=404, detail="Failed to save feedback")
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+@router.post("/{projectId}/feedback", response_model=FeedbackResponse, status_code=201, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
+async def add_feedback(projectId: str, feedback_content: str = Body(..., embed=True, alias="content")):
+    if not ObjectId.is_valid(projectId):
+        raise HTTPException(status_code=400, detail="Invalid project ID")
+    project = await Project.get(ObjectId(projectId))
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
     
-    # Return the newly created feedback as the response
-    return FeedbackResponse(**new_feedback.dict())
+    new_feedback = Feedback(project_id=projectId, content=feedback_content)
+    await new_feedback.insert()
+    return new_feedback
 
-@router.delete("/feedback/{feedbackId}/delete", status_code=204, dependencies=[Depends(user_jwt_bearer)])
-async def delete_feedback(feedbackId: str):
+@router.delete("/feedback/{feedbackId}", status_code=204, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
+async def delete_feedback_by_id(feedbackId: str):
     if not ObjectId.is_valid(feedbackId):
-        raise HTTPException(status_code=400, detail="Invalid feedbackId")
-
+        raise HTTPException(status_code=400, detail="Invalid feedback ID")
     feedback = await Feedback.get(ObjectId(feedbackId))
-    if feedback is None:
+    if not feedback:
         raise HTTPException(status_code=404, detail="Feedback not found")
-
     await feedback.delete()
-    return Response(status_code=204)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-@router.put("/feedback/{feedbackId}/rank", response_model=FeedbackResponse, dependencies=[Depends(admin_jwt_bearer)])
+@router.put("/feedback/{feedbackId}/rank", response_model=FeedbackResponse, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
 async def rank_feedback(feedbackId: str, rank_update: FeedbackUpdate):
     if not ObjectId.is_valid(feedbackId):
-        raise HTTPException(status_code=400, detail="Invalid feedbackId")
-
+        raise HTTPException(status_code=400, detail="Invalid feedback ID")
     feedback = await Feedback.get(ObjectId(feedbackId))
-    if feedback is None:
+    if not feedback:
         raise HTTPException(status_code=404, detail="Feedback not found")
-
     feedback.rank = rank_update.rank
     await feedback.save()
-
-    return FeedbackResponse(**feedback.dict())
+    return feedback
