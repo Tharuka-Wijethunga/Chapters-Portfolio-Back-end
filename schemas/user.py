@@ -56,3 +56,10 @@ class TokenResponse(BaseModel):
                 "token_type": "bearer"
             }
         }
+
+class KeycloakUser(BaseModel):
+    user_id: str
+    email: EmailStr
+    name: str | None = None
+    preferred_username: str
+    roles: list[str] = []

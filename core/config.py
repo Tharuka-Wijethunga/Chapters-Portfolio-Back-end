@@ -1,20 +1,17 @@
-from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Chapters Portfolio API"
-    API_V1_STR: str = "/api/v1"
     
     # MongoDB settings
     MONGODB_URI: str
     MONGODB_DB: str
     
-    # JWT Settings
-    JWT_SECRET_KEY: str = "your-secret-key"  # Change in production
-    JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    # Keycloak Settings
+    KEYCLOAK_URL: str
+    REALM: str
+    CLIENT_ID: str
+    CLIENT_SECRET: str
     
     # CORS Settings
     BACKEND_CORS_ORIGINS: list[str] = [
