@@ -20,7 +20,7 @@ class Project(Document):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     def __repr__(self) -> str:
-        return f"<Project {self.name}>"
+        return f"<Project {self.topic}>"
 
     class Settings:
         name = "projects"
@@ -40,7 +40,7 @@ class Project(Document):
 
 
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
+    topic: Optional[str] = None
     description: Optional[str] = None
     image: Optional[str] = None
     visibility: Optional[bool] = None

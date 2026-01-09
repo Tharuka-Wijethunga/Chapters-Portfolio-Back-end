@@ -44,7 +44,7 @@ async def search_projects(query: str) -> List[Project]:
             "$and": [
                 {
                     "$or": [
-                        {"name": {"$regex": query, "$options": "i"}},
+                        {"topic": {"$regex": query, "$options": "i"}},
                         {"description": {"$regex": query, "$options": "i"}}
                     ]
                 },

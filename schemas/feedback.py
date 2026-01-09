@@ -1,4 +1,6 @@
 from typing import Optional
+
+from beanie import PydanticObjectId
 from pydantic import BaseModel
 
 
@@ -21,9 +23,30 @@ from pydantic import BaseModel
 class FeedbackUpdate(BaseModel):
     rank: int
 
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "rank": 1,
+            }
+        }
+
+
+class FeedbackCreate(BaseModel):
+    content: str
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "content": "Great project!",
+            }
+        }
+
 
 class FeedbackResponse(BaseModel):
-    id: str
+    id: PydanticObjectId
     project_id: str
     content: str
     rank: Optional[int] = None
+
+    class Config:
+        from_attributes = True
