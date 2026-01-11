@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     CLIENT_SECRET: str
 
     # Auth toggles
-    DISABLE_AUTH: bool = True
+    DISABLE_AUTH: bool = False
     
     # CORS Settings
     BACKEND_CORS_ORIGINS: list[str] = [
