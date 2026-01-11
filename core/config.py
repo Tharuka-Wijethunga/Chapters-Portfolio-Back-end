@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     REALM: str
     CLIENT_ID: str
     CLIENT_SECRET: str
+
+    # Auth toggles
+    DISABLE_AUTH: bool = True
     
     # CORS Settings
     BACKEND_CORS_ORIGINS: list[str] = [

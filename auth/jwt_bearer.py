@@ -9,6 +9,10 @@ class JWTBearer(HTTPBearer):
         self.allowed_roles = allowed_roles or []
 
     async def __call__(self, request: Request):
+        # Short-circuit auth when explicitly disabled (useful for local testing)
+        if settings.DISABLE_AUTH:
+            return self._mock_payload()
+
         credentials: HTTPAuthorizationCredentials = await super(JWTBearer, self).__call__(request)
         if not credentials:
             raise HTTPException(status_code=403, detail="Invalid authorization code.")
@@ -29,6 +33,17 @@ class JWTBearer(HTTPBearer):
         # You can attach the payload to the request state if needed elsewhere
         # request.state.user = payload
         return payload
+
+    def _mock_payload(self) -> dict:
+        """Return a permissive payload when auth is disabled for testing."""
+        roles = self.allowed_roles if self.allowed_roles else ["view-profile", "manage-account", "admin"]
+        return {
+            "sub": "test-user",
+            "email": "test@example.com",
+            "name": "Test User",
+            "preferred_username": "test-user",
+            "resource_access": {settings.CLIENT_ID: {"roles": roles}},
+        }
 
     def get_user_roles(self, payload: dict) -> list:
         """
