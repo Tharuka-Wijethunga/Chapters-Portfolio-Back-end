@@ -1,7 +1,8 @@
+from datetime import datetime
 from typing import Optional
 
 from beanie import PydanticObjectId
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # class Response(BaseModel):
@@ -32,11 +33,13 @@ class FeedbackUpdate(BaseModel):
 
 
 class FeedbackCreate(BaseModel):
-    content: str
+    username: str = Field(..., min_length=1)
+    content: str = Field(..., min_length=1)
 
     class Config:
         json_schema_extra = {
             "example": {
+                "username": "jane.doe",
                 "content": "Great project!",
             }
         }
@@ -45,7 +48,9 @@ class FeedbackCreate(BaseModel):
 class FeedbackResponse(BaseModel):
     id: PydanticObjectId
     project_id: str
+    username: str
     content: str
+    created_at: datetime
     rank: Optional[int] = None
 
     class Config:

@@ -84,7 +84,11 @@ async def add_feedback(projectId: str, feedback: FeedbackCreate):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    new_feedback = Feedback(project_id=projectId, content=feedback.content)
+    new_feedback = Feedback(
+        project_id=projectId,
+        username=feedback.username,
+        content=feedback.content,
+    )
     await new_feedback.insert()
     return new_feedback
 
@@ -96,7 +100,7 @@ async def get_feedback_for_project(projectId: str):
     project = await Project.get(ObjectId(projectId))
     if not project or not project.visibility:
         raise HTTPException(status_code=404, detail="Project not found or not visible")
-    return await Feedback.find({"project_id": projectId}).to_list()
+    return await Feedback.find({"project_id": projectId}).sort("-created_at").to_list()
 
 @router.delete("/feedback/{feedbackId}", status_code=204, dependencies=[Depends(JWTBearer(allowed_roles=["view-profile", "manage-account"]))])
 async def delete_feedback_by_id(feedbackId: str):
